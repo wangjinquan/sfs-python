@@ -6,6 +6,7 @@
 from __future__ import division
 import numpy as np
 from numpy.core.umath_tests import inner1d  # element-wise inner product
+import scipy.signal as sig
 from .. import defs
 from .. import util
 
@@ -197,3 +198,63 @@ def apply_delays(signal, delays, fs=None):
     for channel, cdelay in enumerate(delays_samples):
         out[cdelay:cdelay + len(signal), channel] = signal
     return out, offset_samples / fs
+
+
+def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None):
+    """Point source by 2.5-dimensional NFC-HOA.
+
+    Parameters
+    ----------
+    x0 : (N, 3) array_like
+        Sequence of secondary source positions.
+    r0 : float
+        Radius of the circular secondary source distribution
+    xs : (3,) array_like
+        Virtual source position.
+    max_order : int
+        Ambisonics order
+    c : float, optional
+        Speed of sound
+
+    Returns
+    -------
+    delay : float
+        Overall delay (common to all secondary source)
+    weight : float
+        Overall weight (common to all secondary sources)
+    sos : dictionary
+        Second-order section filters 
+    phase : float
+        Phase shift
+
+    """    
+    if max_order is None:
+        max_order =_max_order_circular_harmonics(len(x0), max_order)
+    if c is None:
+        c = defs.c
+    
+    x0 = util.asarray_of_rows(x0)
+    xs = util.asarray_1d(xs)
+    phi, _, r = util.cart2sph(*xs)
+    r0 = util.cart2sph(*x0[0])[2]
+    M = _max_order_circular_harmonics(len(x0), max_order)
+    T = 1/defs.fs
+    
+    delay = (r-r0+r0)/c
+    weight = 1/2/np.pi/r0
+    sos = {}
+    for m in range(0,M+1):
+        _, p, k = sig.besselap(m, norm='delay')
+        z0 = [np.exp(c/r**s0*T) for s0 in p]
+        zinf = [np.exp(c/r**sinf*T) for sinf in p]
+        sos[m] = sig.zpk2sos(z0,zinf,1,pairing='nearest')
+    phase = phi + np.pi
+    return delay, weight, sos, phase
+
+
+def _max_order_circular_harmonics(N, max_order):
+    """Compute order of 2D HOA."""
+    return N // 2 if max_order is None else max_order
+
+
+    
