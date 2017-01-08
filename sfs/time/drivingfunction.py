@@ -232,7 +232,6 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None):
         max_order =_max_order_circular_harmonics(len(x0), max_order)
     if c is None:
         c = defs.c
-    
     x0 = util.asarray_of_rows(x0)
     xs = util.asarray_1d(xs)
     phi, _, r = util.cart2sph(*xs)
@@ -245,10 +244,10 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None):
     sos = {}
     for m in range(0,M+1):
         _, p, k = sig.besselap(m, norm='delay')
-        z0 = [np.exp(c/r**s0*T) for s0 in p]
-        zinf = [np.exp(c/r**sinf*T) for sinf in p]
+        z0 = [np.exp(c/r*s0*T) for s0 in p]
+        zinf = [np.exp(c/r0*sinf*T) for sinf in p]
         sos[m] = sig.zpk2sos(z0,zinf,1,pairing='nearest')
-    phase = phi + np.pi
+    phase = phi
     return delay, weight, sos, phase
 
 
