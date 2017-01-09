@@ -199,8 +199,64 @@ def apply_delays(signal, delays, fs=None):
         out[cdelay:cdelay + len(signal), channel] = signal
     return out, offset_samples / fs
 
+    
+def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=None):
+    """Vritual plane wave by 2.5-dimensional NFC-HOA.
 
-def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None):
+    Parameters
+    ----------
+    x0 : (N, 3) array_like
+        Sequence of secondary source positions.
+    r0 : float
+        Radius of the circular secondary source distribution
+    npw : (3,) array_like
+        Unit vector (propagation direction) of plane wave.
+    max_order : int
+        Ambisonics order
+    c : float, optional
+        Speed of sound
+
+    Returns
+    -------
+    delay : float
+        Overall delay (common to all secondary source)
+    weight : float
+        Overall weight (common to all secondary sources)
+    sos : dictionary
+        Second-order section filters 
+    phase : float
+        Phase shift
+
+    """    
+    if max_order is None:
+        max_order =_max_order_circular_harmonics(len(x0), max_order)
+    if c is None:
+        c = defs.c
+    if fs is None:
+        fs = defs.fs
+
+    x0 = util.asarray_of_rows(x0)
+    npw = util.asarray_1d(npw)
+    phipw, _, _ = util.cart2sph(*npw)
+    r0 = util.cart2sph(*x0[0])[2]
+    M = _max_order_circular_harmonics(len(x0), max_order)
+    T = 1/fs
+    
+    delay = 0/c
+    weight = 2*r0
+    sos = {}
+#    sos[0] = [1., 0., 0., 1., 0., 0.]
+    for m in range(0,M+1):
+        _, p, k = sig.besselap(m, norm='delay')
+        z0 = [np.exp(0*T) for s0 in p]
+#        z0 = np.ones((m,1))
+        zinf = [np.exp(c/r0*sinf*T) for sinf in p]
+        sos[m] = sig.zpk2sos(z0,zinf,1,pairing='nearest')
+    phase = phipw - np.pi
+    return delay, weight, sos, phase
+
+    
+def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=None):
     """Point source by 2.5-dimensional NFC-HOA.
 
     Parameters
@@ -232,15 +288,17 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None):
         max_order =_max_order_circular_harmonics(len(x0), max_order)
     if c is None:
         c = defs.c
+    if fs is None:
+        fs = defs.fs
     x0 = util.asarray_of_rows(x0)
     xs = util.asarray_1d(xs)
     phi, _, r = util.cart2sph(*xs)
     r0 = util.cart2sph(*x0[0])[2]
     M = _max_order_circular_harmonics(len(x0), max_order)
-    T = 1/defs.fs
+    T = 1/fs
     
-    delay = (r-r0+r0)/c
-    weight = 1/2/np.pi/r0
+    delay = (r-r0)/c
+    weight = 1/2/np.pi/r
     sos = {}
     for m in range(0,M+1):
         _, p, k = sig.besselap(m, norm='delay')
