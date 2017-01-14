@@ -224,7 +224,7 @@ def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=None):
         Overall weight (common to all secondary sources)
     sos : dictionary
         Second-order section filters 
-    phase : float
+    phaseshift : float
         Phase shift
 
     """    
@@ -238,22 +238,27 @@ def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=None):
     x0 = util.asarray_of_rows(x0)
     npw = util.asarray_1d(npw)
     phipw, _, _ = util.cart2sph(*npw)
-    r0 = util.cart2sph(*x0[0])[2]
+    phi0, _, r0 = util.cart2sph(*x0.T)
+    r0 = r0[0]
     M = _max_order_circular_harmonics(len(x0), max_order)
     T = 1/fs
     
     delay = 0/c
-    weight = 2*r0
+    weight = 2
     sos = {}
-#    sos[0] = [1., 0., 0., 1., 0., 0.]
     for m in range(0,M+1):
-        _, p, k = sig.besselap(m, norm='delay')
-        z0 = [np.exp(0*T) for s0 in p]
-#        z0 = np.ones((m,1))
-        zinf = [np.exp(c/r0*sinf*T) for sinf in p]
+        _, p, _ = sig.besselap(m, norm='delay')
+        s0 = np.zeros(m)
+        sinf = (c/r0)*p
+        z0 = np.exp(s0*T)
+        zinf = np.exp(sinf*T)
+
+#        TODO: gain normalization at the Nyquist frequency
+#        k = np.prod( (-1-z0)/(-1-zinf))
+        
         sos[m] = sig.zpk2sos(z0,zinf,1,pairing='nearest')
-    phase = phipw - np.pi
-    return delay, weight, sos, phase
+    phaseshift = phipw + np.pi - phi0
+    return delay, weight, sos, phaseshift
 
     
 def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=None):
@@ -280,10 +285,10 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=None):
         Overall weight (common to all secondary sources)
     sos : dictionary
         Second-order section filters 
-    phase : float
+    phaseshift : float
         Phase shift
 
-    """    
+    """
     if max_order is None:
         max_order =_max_order_circular_harmonics(len(x0), max_order)
     if c is None:
@@ -292,8 +297,9 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=None):
         fs = defs.fs
     x0 = util.asarray_of_rows(x0)
     xs = util.asarray_1d(xs)
+    phi0, _,r0 = util.cart2sph(*x0.T)
+    r0 = r0[0]
     phi, _, r = util.cart2sph(*xs)
-    r0 = util.cart2sph(*x0[0])[2]
     M = _max_order_circular_harmonics(len(x0), max_order)
     T = 1/fs
     
@@ -305,13 +311,72 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=None):
         z0 = [np.exp(c/r*s0*T) for s0 in p]
         zinf = [np.exp(c/r0*sinf*T) for sinf in p]
         sos[m] = sig.zpk2sos(z0,zinf,1,pairing='nearest')
-    phase = phi
-    return delay, weight, sos, phase
+    phaseshift = phi0 - phi
+    return delay, weight, sos, phaseshift
 
 
+def nfchoa_driving_signals(delay, weight, sos, phaseshift, signal, max_order=None, fs=None):
+    """Get NFC-HOA driving signals per secondary source.
+
+    Parameters
+    ----------
+    delay : float
+        Overall delay (common to all secondary source)
+    weight : float
+        Overall weight (common to all secondary sources)
+    sos : dictionary
+        Second-order section filters 
+    phaseshift : float
+        Phase shift
+    signal : (N,) array_like
+        Excitation signal (mono) which gets weighted and delayed.
+    fs: int, optional
+        Sampling frequency in Hertz.
+
+    Returns
+    -------
+    driving_signals : (N, C) numpy.ndarray
+        Driving signal per channel (column represents channel).
+    t_offset : float
+        Simulation point in time offset (seconds).
+
+    """
+    if max_order is None:
+        max_order =_max_order_circular_harmonics(len(phaseshift), max_order)
+    if fs is None:
+        fs = defs.fs
+    delay = util.asarray_1d(delay)
+    weight = util.asarray_1d(weight)
+
+#    TODO : check FOS/SOS structure
+
+    N = len(phaseshift)
+    L = len(signal)
+    d = np.zeros((N,L))
+    max_order = _max_order_circular_harmonics(N,max_order)
+#    gain = sos_gain(sos[0])
+
+    for l in range(N):
+        d[l] += sig.sosfilt(sos[0],signal)        
+    for m in range(0,max_order+1):
+        sos_m = sos[abs(m)]
+        gain = _sos_gain(sos[m])
+        modal_response = gain * sig.sosfilt(sos_m,signal)
+        for l in range(N):
+            d[l] += modal_response * 2* np.cos(m*phaseshift[l])
+    t = 0
+    return d * weight, t
+    
+    
+    
 def _max_order_circular_harmonics(N, max_order):
     """Compute order of 2D HOA."""
     return N // 2 if max_order is None else max_order
 
-
+def _sos_gain(sos):
+    gain = 1
+    for k in range(len(sos)):
+        gain *= (sos[k,0]-sos[k,1]+sos[k,2])/(sos[k,3]-sos[k,4]+sos[k,5])
+    return 1/gain
+    
     
