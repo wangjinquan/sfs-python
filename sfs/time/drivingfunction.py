@@ -306,7 +306,7 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=None):
     sos = {}
     for m in range(0,M+1):
         _, p, k = sig.besselap(m, norm='delay')
-        s0 = np.zeros(m)
+        s0 = (c/r)*p
         sinf = (c/r0)*p
         z0 = np.exp(s0*T)
         zinf = np.exp(sinf*T)
@@ -374,7 +374,7 @@ def nfchoa_driving_signals(delay, weight, sos, phaseshift, signal, max_order=Non
 def _max_order_circular_harmonics(N, max_order):
     """Compute order of 2D HOA."""
     return (N-1) // 2 if max_order is None else max_order
-    
+
 def _normalize_gain(s0,sinf,z0,zinf,fs=None):
     """Match the digital filter gain at the Nyquist freuqneycy"""
     if fs is None:
@@ -389,4 +389,5 @@ def _normalize_gain(s0,sinf,z0,zinf,fs=None):
         omega = 1j*np.pi*fs
         k *= np.prod((omega-s0)/(omega-sinf))
         k *= np.prod((-1-zinf)/(-1-z0))
+    print(np.abs(k))
     return np.abs(k)
