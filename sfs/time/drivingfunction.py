@@ -200,7 +200,7 @@ def apply_delays(signal, delays, fs=None):
     return out, offset_samples / fs
 
     
-def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=None):
+def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=None, normalize=True):
     """Vritual plane wave by 2.5-dimensional NFC-HOA.
 
     Parameters
@@ -252,14 +252,17 @@ def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=None):
         sinf = (c/r0)*p
         z0 = np.exp(s0*T)
         zinf = np.exp(sinf*T)
-        k = _normalize_gain(s0,sinf,z0,zinf,fs=None)
+        if normalize:
+            k = _normalize_gain(s0,sinf,z0,zinf,fs=None)
+        else:
+            k = 1
         sos[m] = sig.zpk2sos(z0,zinf,k,pairing='nearest')
         # TODO: normalize only the first biquad, or all of them with k**-N?
     phaseshift = phipw + np.pi - phi0
     return delay, weight, sos, phaseshift
 
     
-def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=None):
+def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=None, normalize=True):
     """Point source by 2.5-dimensional NFC-HOA.
 
     Parameters
@@ -310,7 +313,10 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=None):
         sinf = (c/r0)*p
         z0 = np.exp(s0*T)
         zinf = np.exp(sinf*T)
-        k = _normalize_gain(s0,sinf,z0,zinf,fs=None)
+        if normalize:
+            k = _normalize_gain(s0,sinf,z0,zinf,fs=None)
+        else:
+            k = 1
         sos[m] = sig.zpk2sos(z0,zinf,k,pairing='nearest')
     phaseshift = phi0 - phi
     return delay, weight, sos, phaseshift
@@ -389,5 +395,4 @@ def _normalize_gain(s0,sinf,z0,zinf,fs=None):
         omega = 1j*np.pi*fs
         k *= np.prod((omega-s0)/(omega-sinf))
         k *= np.prod((-1-zinf)/(-1-z0))
-    print(np.abs(k))
     return np.abs(k)
