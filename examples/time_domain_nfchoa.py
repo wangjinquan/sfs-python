@@ -12,14 +12,13 @@ import sfs
 fs = sfs.defs.fs
 grid = sfs.util.xyz_grid([-2, 2], [-2, 2], 0, spacing=0.002)
 my_cmap = 'YlOrRd'
-my_cmap = 'Blues'
+#my_cmap = 'Blues'
 N = 60  # number of secondary sources
 R = 1.5  # radius of spherical/circular array
 x0, n0, a0 = sfs.array.circular(N, R)  # get secondary source positions
 
 # Signals
 L = 1024
-
 dirac = np.zeros(L)
 dirac[0] = 1
 
@@ -31,35 +30,37 @@ signal = dirac
 
 # NFC-HOA setup
 max_order = None
-max_order = 120
+#max_order = 120
 #max_order = 29
-#max_order = sfs.mono.drivingfunction._max_order_circular_harmonics(N, max_order)
 
 # POINT SOURCE
-xs = [1.5, 1.5, 0]  # position of virtual source
-t = (np.sqrt(2)*1.5)/sfs.defs.c
-delay, weight, sos, phaseshift = sfs.time.drivingfunction.nfchoa_25d_point(x0,R,xs,max_order=max_order,normalize=True)
+xs = np.r_[1.5, 1.5, 0]  # position of virtual source
+delay, weight, sos, phaseshift = \
+    sfs.time.drivingfunction.nfchoa_25d_point(x0, R, xs, max_order=max_order, normalize=True)
+t = (np.linalg.norm(xs))/sfs.defs.c
+
 
 # PLANE WAVE
-#npw = [0,-1,0]  
-#t = 0/sfs.defs.c
-#delay, weight, sos, phaseshift = sfs.time.drivingfunction.nfchoa_25d_plane(x0,R,npw,max_order=max_order, normalize=True)
+npw = [0,-1,0]  
+t = 0/sfs.defs.c
+delay, weight, sos, phaseshift = \
+    sfs.time.drivingfunction.nfchoa_25d_plane(x0,R,npw,max_order=max_order, normalize=True)
 t = 0
 
-t += L/fs/2
-t = R/sfs.defs.c
+#t += L/fs/2
+#t = R/sfs.defs.c
 
 # Driving signals
 d, t_offset = sfs.time.drivingfunction.nfchoa_driving_signals(delay, weight, sos, phaseshift, signal, max_order=max_order)
 
-plt.figure(figsize=(4,4))
-plt.imshow(sfs.util.db(d.T),interpolation=None,cmap='Blues')
+plt.figure(figsize=(5,4))
+plt.imshow(sfs.util.db(d),interpolation=None,cmap='Blues')
 plt.axis('tight')
 plt.colorbar()
 plt.clim([-120,0])
 
 plt.figure(figsize=(4,4))
-plt.imshow(np.real(d.T),interpolation=None,cmap='coolwarm')
+plt.imshow(np.real(d),interpolation=None,cmap='coolwarm')
 plt.axis('tight')
 plt.colorbar()
 plt.clim([-0.1,0.1])
@@ -69,7 +70,7 @@ scale = 15
 
 # Synthesized sound field
 a0 = np.ones(len(x0))
-p = sfs.time.soundfield.p_array(x0, d.T, a0, t, grid)
+p = sfs.time.soundfield.p_array(x0, d, a0, t, grid)
 
 plt.figure(figsize=(4, 4))
 im = sfs.plot.level(p, grid, cmap='Blues')
@@ -80,6 +81,8 @@ sfs.plot.virtualsource_2d(xs)
 #plt.title('impulse_ps_nfchoa_25d')
 #plt.savefig('impulse_ps_nfchoa_25d.eps')
 #plt.savefig('impulse_ps_nfchoa_25d.png')
+
+max_order = sfs.mono.drivingfunction._max_order_circular_harmonics(N, max_order)
 
 plt.figure(figsize=(4, 4))
 sfs.plot.soundfield(scale*p, grid, cmap='coolwarm')

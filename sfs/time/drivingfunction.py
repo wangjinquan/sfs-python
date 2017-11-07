@@ -227,7 +227,7 @@ def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=None, normalize=Tru
     phaseshift : float
         Phase shift
 
-    """    
+    """
     if max_order is None:
         max_order =_max_order_circular_harmonics(len(x0), max_order)
     if c is None:
@@ -238,30 +238,28 @@ def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=None, normalize=Tru
     x0 = util.asarray_of_rows(x0)
     npw = util.asarray_1d(npw)
     phipw, _, _ = util.cart2sph(*npw)
-    phi0, _, r0 = util.cart2sph(*x0.T)
-    r0 = r0[0]
-    M = _max_order_circular_harmonics(len(x0), max_order)
-    T = 1/fs
+    phi0, _, _ = util.cart2sph(*x0.T)
     
     delay = -r0/c
     weight = 2
     sos = {}
-    for m in range(0,M+1):
+    for m in range(0, max_order+1):
         _, p, _ = sig.besselap(m, norm='delay')
         s0 = np.zeros(m)
         sinf = (c/r0)*p
-        z0 = np.exp(s0*T)
-        zinf = np.exp(sinf*T)
+        z0 = np.exp(s0/fs)
+        zinf = np.exp(sinf/fs)
+        # TODO: select matched-z or bilinear transform
         if normalize:
             k = _normalize_gain(s0,sinf,z0,zinf,fs=None)
         else:
             k = 1
-        sos[m] = sig.zpk2sos(z0,zinf,k,pairing='nearest')
-        # TODO: normalize only the first biquad, or all of them with k**-N?
+        sos[m] = sig.zpk2sos(z0, zinf, k, pairing='nearest')
+        # TODO: normalize the SOS filters individually?
     phaseshift = phipw + np.pi - phi0
     return delay, weight, sos, phaseshift
 
-    
+
 def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=None, normalize=True):
     """Point source by 2.5-dimensional NFC-HOA.
 
@@ -298,26 +296,25 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=None, normalize=True
         fs = defs.fs
     x0 = util.asarray_of_rows(x0)
     xs = util.asarray_1d(xs)
-    phi0, _,r0 = util.cart2sph(*x0.T)
-    r0 = r0[0]
+    phi0, _, _ = util.cart2sph(*x0.T)
     phi, _, r = util.cart2sph(*xs)
-    M = _max_order_circular_harmonics(len(x0), max_order)
-    T = 1/fs
-    
+
     delay = (r-r0)/c
     weight = 1/2/np.pi/r
     sos = {}
-    for m in range(0,M+1):
+    for m in range(0, max_order+1):
         _, p, k = sig.besselap(m, norm='delay')
         s0 = (c/r)*p
         sinf = (c/r0)*p
-        z0 = np.exp(s0*T)
-        zinf = np.exp(sinf*T)
+        z0 = np.exp(s0/fs)
+        zinf = np.exp(sinf/fs)
+        # TODO: select matched-z or bilinear transform
         if normalize:
-            k = _normalize_gain(s0,sinf,z0,zinf,fs=None)
+            k = _normalize_gain(s0, sinf, z0, zinf, fs=None)
         else:
             k = 1
         sos[m] = sig.zpk2sos(z0,zinf,k,pairing='nearest')
+        # TODO: normalize the SOS filters individually?
     phaseshift = phi0 - phi
     return delay, weight, sos, phaseshift
 
@@ -333,7 +330,7 @@ def nfchoa_driving_signals(delay, weight, sos, phaseshift, signal, max_order=Non
         Overall weight (common to all secondary sources)
     sos : dictionary
         Second-order section filters 
-    phaseshift : float
+    phaseshift : (C,) array_like
         Phase shift
     signal : (N,) array_like
         Excitation signal (mono) which gets weighted and delayed.
@@ -342,8 +339,8 @@ def nfchoa_driving_signals(delay, weight, sos, phaseshift, signal, max_order=Non
 
     Returns
     -------
-    driving_signals : (N, C) numpy.ndarray
-        Driving signal per channel (column represents channel).
+    driving_signals : (C, N) numpy.ndarray
+        Driving signals.
     t_offset : float
         Simulation point in time offset (seconds).
 
@@ -354,26 +351,19 @@ def nfchoa_driving_signals(delay, weight, sos, phaseshift, signal, max_order=Non
         fs = defs.fs
     delay = util.asarray_1d(delay)
     weight = util.asarray_1d(weight)
-
 #    TODO : check FOS/SOS structure
 
     N = len(phaseshift)
     L = len(signal)
-    d = np.zeros((N,L),dtype='complex128')
-    max_order = _max_order_circular_harmonics(N,max_order)
+    d = np.zeros((L,N),dtype='complex128')
 
-    sos_m = sos[0]
-    modal_response = sig.sosfilt(sos_m,signal)
+    modal_response = sig.sosfilt(sos[0], signal)
     for l in range(N):
-        d[l] += modal_response
-    for m in range(1,max_order+1):
-        sos_m = sos[abs(m)]
-        modal_response = sig.sosfilt(sos_m,signal)
+        d[:,l] += modal_response
+    for m in range(1, max_order+1):
+        modal_response = sig.sosfilt(sos[np.abs(m)], signal)
         for l in range(N):
-#            d[l] += modal_response * 2 * np.cos(m*phaseshift[l])
-            # TODO: casting rul 'same_kind'
-            d[l] += modal_response * np.exp(1j*m*phaseshift[l])
-            d[l] += modal_response * np.exp(1j*-m*phaseshift[l])
+            d[:,l] += modal_response * 2 * np.cos(m*phaseshift[l])
     t_offset = delay
     return np.real(d) * weight, t_offset
     
@@ -381,11 +371,10 @@ def _max_order_circular_harmonics(N, max_order):
     """Compute order of 2D HOA."""
     return (N-1) // 2 if max_order is None else max_order
 
-def _normalize_gain(s0,sinf,z0,zinf,fs=None):
+def _normalize_gain(s0, sinf, z0, zinf, fs=None):
     """Match the digital filter gain at the Nyquist freuqneycy"""
     if fs is None:
         fs = defs.fs
-        
     # TODO: check the number of poles and zeros
     
     k = 1
