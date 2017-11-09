@@ -315,7 +315,7 @@ def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=44100, normalize=Tr
         zinf = np.exp(sinf/fs)
         # TODO: select matched-z or bilinear transform
         if normalize:
-            k = _normalize_gain(s0, sinf, z0, zinf, fs=fs)
+            k = _normalize_digital_filter_gain(s0, sinf, z0, zinf, fs=fs)
         else:
             k = 1
         sos[m] = sig.zpk2sos(z0, zinf, k, pairing='nearest')
@@ -382,7 +382,7 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=44100, normalize=Tru
         zinf = np.exp(sinf/fs)
         # TODO: select matched-z or bilinear transform
         if normalize:
-            k = _normalize_gain(s0, sinf, z0, zinf, fs=fs)
+            k = _normalize_digital_filter_gain(s0, sinf, z0, zinf, fs=fs)
         else:
             k = 1
         sos[m] = sig.zpk2sos(z0,zinf,k,pairing='nearest')
@@ -442,7 +442,7 @@ def _max_order_circular_harmonics(N, max_order):
     """Compute order of 2D HOA."""
     return (N-1) // 2 if max_order is None else max_order
 
-def _normalize_gain(s0, sinf, z0, zinf, fs=44100):
+def _normalize_digital_filter_gain(s0, sinf, z0, zinf, fs=44100):
     """Match the digital filter gain at the Nyquist freuqneycy"""
 
     # TODO: check the number of poles and zeros
