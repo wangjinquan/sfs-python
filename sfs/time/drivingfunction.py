@@ -252,12 +252,12 @@ def apply_delays(signal, delays):
     delays_samples = np.rint(samplerate * delays).astype(int)
     offset_samples = delays_samples.min()
     delays_samples -= offset_samples
-    out = np.zeros((delays_samples.max() + len(signal), len(delays_samples)))
-    for channel, cdelay in enumerate(delays_samples):
-        out[cdelay:cdelay + len(signal), channel] = signal
-    return out, offset_samples / fs
+    out = np.zeros((delays_samples.max() + len(data), len(delays_samples)))
+    for column, row in enumerate(delays_samples):
+        out[row:row + len(data), column] = data
+    return util.DelayedSignal(out, samplerate, offset_samples / samplerate)
 
-    
+
 def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=44100, normalize=True):
     """Vritual plane wave by 2.5-dimensional NFC-HOA.
 
@@ -284,7 +284,14 @@ def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=44100, normalize=Tr
         Second-order section filters 
     phaseshift : float
         Phase shift
-
+    
+    References
+    ----------
+        S. Spors, V. Kuscher, J. Ahrens (2011) - "Efficient realization of
+       model-based rendering for 2.5-dimensional near-field compensated higher
+       order Ambisonics", WASPAA, p. 61-64
+       
+       See Eq.(10)
     """
     if max_order is None:
         max_order =_max_order_circular_harmonics(len(x0), max_order)
@@ -344,7 +351,15 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=44100, normalize=Tru
     phaseshift : float
         Phase shift
 
-    """
+    
+    References
+    ----------
+        S. Spors, V. Kuscher, J. Ahrens (2011) - "Efficient realization of
+       model-based rendering for 2.5-dimensional near-field compensated higher
+       order Ambisonics", WASPAA, p. 61-64
+       
+       See Eq.(11)
+   """
     if max_order is None:
         max_order =_max_order_circular_harmonics(len(x0), max_order)
     if c is None:
