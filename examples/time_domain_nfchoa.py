@@ -36,7 +36,6 @@ npw = [0, -1, 0]
 delay, weight, sos, phaseshift = sfs.time.drivingfunction.nfchoa_25d_plane(x0, R, npw, max_order=max_order, normalize=True)
 t = 0
 
-
 # Driving signals
 d, fs, t_offset = sfs.time.drivingfunction.nfchoa_driving_signals(delay, weight, sos, phaseshift, signal, max_order=max_order)
 
@@ -44,29 +43,29 @@ plt.figure()
 plt.imshow(sfs.util.db(d), interpolation='None', cmap='Blues')
 plt.axis('tight')
 plt.colorbar()
-plt.clim([-120,0])
+plt.clim([-120, 0])
 
 plt.figure()
 plt.imshow(np.real(d), interpolation='None', cmap='coolwarm')
 plt.axis('tight')
 plt.colorbar()
-plt.clim([-0.1,0.1])
+plt.clim([-0.1, 0.1])
 
 
 # Synthesized sound field
 a0 = np.ones(len(x0))
 p = sfs.time.soundfield.p_array(x0, (d, fs, t_offset), a0, t, grid)
 
-plt.figure(figsize=(3,3))
+plt.figure(figsize=(3, 3))
 sfs.plot.level(p, grid, cmap='Blues')
 sfs.plot.loudspeaker_2d(x0, n0)
 #sfs.plot.virtualsource_2d(xs, type='point')
-sfs.plot.virtualsource_2d([0,0], ns=npw, type='plane')
+sfs.plot.virtualsource_2d([0, 0], ns=npw, type='plane')
 plt.savefig('pw_level.png')
 
-plt.figure(figsize=(3,3))
+plt.figure(figsize=(3, 3))
 sfs.plot.soundfield(p, grid, cmap='coolwarm')
 sfs.plot.loudspeaker_2d(x0, n0)
 #sfs.plot.virtualsource_2d(xs, type='point')
-sfs.plot.virtualsource_2d([0,0], ns=npw, type='plane')
+sfs.plot.virtualsource_2d([0, 0], ns=npw, type='plane')
 plt.savefig('pw_soundfield.png')

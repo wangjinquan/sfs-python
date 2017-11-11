@@ -281,20 +281,20 @@ def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=44100, normalize=Tr
     weight : float
         Overall weight (common to all secondary sources)
     sos : dictionary
-        Second-order section filters 
+        Second-order section filters
     phaseshift : float
         Phase shift
-    
+
     References
     ----------
         S. Spors, V. Kuscher, J. Ahrens (2011) - "Efficient realization of
        model-based rendering for 2.5-dimensional near-field compensated higher
        order Ambisonics", WASPAA, p. 61-64
-       
+
        See Eq.(10)
     """
     if max_order is None:
-        max_order =_max_order_circular_harmonics(len(x0), max_order)
+        max_order = _max_order_circular_harmonics(len(x0), max_order)
     if c is None:
         c = defs.c
 
@@ -302,7 +302,7 @@ def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=44100, normalize=Tr
     npw = util.asarray_1d(npw)
     phipw, _, _ = util.cart2sph(*npw)
     phi0, _, _ = util.cart2sph(*x0.T)
-    
+
     delay = -r0/c
     weight = 2
     sos = {}
@@ -347,21 +347,20 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=44100, normalize=Tru
     weight : float
         Overall weight (common to all secondary sources)
     sos : dictionary
-        Second-order section filters 
+        Second-order section filters
     phaseshift : float
         Phase shift
 
-    
     References
     ----------
         S. Spors, V. Kuscher, J. Ahrens (2011) - "Efficient realization of
        model-based rendering for 2.5-dimensional near-field compensated higher
        order Ambisonics", WASPAA, p. 61-64
-       
+
        See Eq.(11)
    """
     if max_order is None:
-        max_order =_max_order_circular_harmonics(len(x0), max_order)
+        max_order = _max_order_circular_harmonics(len(x0), max_order)
     if c is None:
         c = defs.c
 
@@ -385,7 +384,7 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=44100, normalize=Tru
             k = _normalize_digital_filter_gain(s0, sinf, z0, zinf, fs=fs)
         else:
             k = 1
-        sos[m] = sig.zpk2sos(z0,zinf,k,pairing='nearest')
+        sos[m] = sig.zpk2sos(z0, zinf, k, pairing='nearest')
         # TODO: normalize the SOS filters individually?
     phaseshift = phi0 - phi
     return delay, weight, sos, phaseshift
@@ -401,7 +400,7 @@ def nfchoa_driving_signals(delay, weight, sos, phaseshift, signal, max_order=Non
     weight : float
         Overall weight (common to all secondary sources)
     sos : dictionary
-        Second-order section filters 
+        Second-order section filters
     phaseshift : (C,) array_like
         Phase shift
     signal : (N,) array_like
@@ -418,7 +417,7 @@ def nfchoa_driving_signals(delay, weight, sos, phaseshift, signal, max_order=Non
 
     """
     if max_order is None:
-        max_order =_max_order_circular_harmonics(len(phaseshift), max_order)
+        max_order = _max_order_circular_harmonics(len(phaseshift), max_order)
 
     delay = util.asarray_1d(delay)
     weight = util.asarray_1d(weight)
@@ -426,21 +425,23 @@ def nfchoa_driving_signals(delay, weight, sos, phaseshift, signal, max_order=Non
 
     N = len(phaseshift)
     L = len(signal)
-    d = np.zeros((L,N),dtype='complex128')
+    d = np.zeros((L, N), dtype='complex128')
 
     modal_response = sig.sosfilt(sos[0], signal)
     for l in range(N):
-        d[:,l] += modal_response
+        d[:, l] += modal_response
     for m in range(1, max_order+1):
         modal_response = sig.sosfilt(sos[np.abs(m)], signal)
         for l in range(N):
-            d[:,l] += modal_response * 2 * np.cos(m*phaseshift[l])
+            d[:, l] += modal_response * 2 * np.cos(m*phaseshift[l])
     t_offset = delay[0]
     return np.real(d) * weight, fs, t_offset
-    
+
+
 def _max_order_circular_harmonics(N, max_order):
     """Compute order of 2D HOA."""
     return (N-1) // 2 if max_order is None else max_order
+
 
 def _normalize_digital_filter_gain(s0, sinf, z0, zinf, fs=44100):
     """Match the digital filter gain at the Nyquist freuqneycy"""
@@ -454,4 +455,3 @@ def _normalize_digital_filter_gain(s0, sinf, z0, zinf, fs=44100):
         k *= np.prod((omega-s0)/(omega-sinf))
         k *= np.prod((-1-zinf)/(-1-z0))
     return np.abs(k)
-
