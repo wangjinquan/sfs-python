@@ -6,7 +6,7 @@
 from __future__ import division
 import numpy as np
 from numpy.core.umath_tests import inner1d  # element-wise inner product
-import scipy.signal as sig
+from scipy.signal import besselap, sosfilt, zpk2sos
 from .. import defs
 from .. import util
 
@@ -307,8 +307,8 @@ def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=44100, normalize=Tr
     weight = 2
     sos = {}
     for m in range(0, max_order+1):
-        _, p, _ = sig.besselap(m, norm='delay')
-        # TODO: modify "sig.besselap" for very high orders (>150)
+        _, p, _ = besselap(m, norm='delay')
+        # TODO: modify "besselap" for very high orders (>150)
         s0 = np.zeros(m)
         sinf = (c/r0)*p
         z0 = np.exp(s0/fs)
@@ -318,7 +318,7 @@ def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=44100, normalize=Tr
             k = _normalize_digital_filter_gain(s0, sinf, z0, zinf, fs=fs)
         else:
             k = 1
-        sos[m] = sig.zpk2sos(z0, zinf, k, pairing='nearest')
+        sos[m] = zpk2sos(z0, zinf, k, pairing='nearest')
         # TODO: normalize the SOS filters individually?
     phaseshift = phipw + np.pi - phi0
     return delay, weight, sos, phaseshift
@@ -373,8 +373,8 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=44100, normalize=Tru
     weight = 1/2/np.pi/r
     sos = {}
     for m in range(0, max_order+1):
-        _, p, k = sig.besselap(m, norm='delay')
-        # TODO: modify "sig.besselap" for very high orders (>150)
+        _, p, k = besselap(m, norm='delay')
+        # TODO: modify "besselap" for very high orders (>150)
         s0 = (c/r)*p
         sinf = (c/r0)*p
         z0 = np.exp(s0/fs)
@@ -384,7 +384,7 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=44100, normalize=Tru
             k = _normalize_digital_filter_gain(s0, sinf, z0, zinf, fs=fs)
         else:
             k = 1
-        sos[m] = sig.zpk2sos(z0, zinf, k, pairing='nearest')
+        sos[m] = zpk2sos(z0, zinf, k, pairing='nearest')
         # TODO: normalize the SOS filters individually?
     phaseshift = phi0 - phi
     return delay, weight, sos, phaseshift
@@ -427,11 +427,11 @@ def nfchoa_driving_signals(delay, weight, sos, phaseshift, signal, max_order=Non
     L = len(signal)
     d = np.zeros((L, N), dtype='complex128')
 
-    modal_response = sig.sosfilt(sos[0], signal)
+    modal_response = sosfilt(sos[0], signal)
     for l in range(N):
         d[:, l] += modal_response
     for m in range(1, max_order+1):
-        modal_response = sig.sosfilt(sos[np.abs(m)], signal)
+        modal_response = sosfilt(sos[np.abs(m)], signal)
         for l in range(N):
             d[:, l] += modal_response * 2 * np.cos(m*phaseshift[l])
     t_offset = delay[0]
