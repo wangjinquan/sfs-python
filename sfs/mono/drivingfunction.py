@@ -254,7 +254,7 @@ def nfchoa_2d_plane(omega, x0, r0, n=[0, 1, 0], max_order=None, c=None):
     n = util.normalize_vector(n)
     phi, _, r = util.cart2sph(*n)
     phi0 = util.cart2sph(*x0.T)[0]
-    M = _max_order_circular_harmonics(len(x0), max_order)
+    M = util.max_order_circular_harmonics(len(x0), max_order)
     d = 0
     for m in range(-M, M + 1):
         d += 1j**-m / hankel2(m, k * r0) * np.exp(1j * m * (phi0 - phi))
@@ -280,7 +280,7 @@ def nfchoa_25d_point(omega, x0, r0, xs, max_order=None, c=None):
     xs = util.asarray_1d(xs)
     phi, _, r = util.cart2sph(*xs)
     phi0 = util.cart2sph(*x0.T)[0]
-    M = _max_order_circular_harmonics(len(x0), max_order)
+    M = util.max_order_circular_harmonics(len(x0), max_order)
     hr = _sph_hn2(M, k * r)
     hr0 = _sph_hn2(M, k * r0)
     d = 0
@@ -308,7 +308,7 @@ def nfchoa_25d_plane(omega, x0, r0, n=[0, 1, 0], max_order=None, c=None):
     n = util.normalize_vector(n)
     phi, _, r = util.cart2sph(*n)
     phi0 = util.cart2sph(*x0.T)[0]
-    M = _max_order_circular_harmonics(len(x0), max_order)
+    M = util.max_order_circular_harmonics(len(x0), max_order)
     hn2 = _sph_hn2(M, k * r0)
     d = 0
     for m in range(-M, M + 1):
@@ -673,8 +673,3 @@ def _sph_hn2(n, z):
     """Spherical Hankel function of 2nd kind."""
     jn, jnp, yn, ynp = sph_jnyn(n, z)
     return jn - 1j * yn
-
-
-def _max_order_circular_harmonics(N, max_order):
-    """Compute order of 2D HOA."""
-    return N // 2 if max_order is None else max_order

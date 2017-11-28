@@ -466,3 +466,34 @@ def image_sources_for_box(x, L, max_order, strict_order=True):
         order = order[max_order_mask, :]
         
     return xs, order
+
+
+def max_order_circular_harmonics(N, max_order):
+    r"""Maximum order of 2D/2.5D HOA.
+
+    If ``max_order`` is ``None`` it returns the maximum order
+    for which no spatial aliasing appears.
+    It is given on page 132 of [Ahrens2012]_ as
+
+    .. math::
+        \text{max_order} =
+            \begin{cases}
+                N/2 - 1 & \text{even}\;N \\
+                (N-1)/2 & \text{odd}\;N
+            \end{cases}
+
+    Parameters
+    ----------
+    N : int
+        Number of secondary sources.
+    max_order : int
+        Ambisonics order
+
+    Returns
+    -------
+    max_order : int
+        Ambisonics order
+    """
+    if max_order is None:
+        max_order = (N-1) // 2
+    return max_order

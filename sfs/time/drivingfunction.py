@@ -293,8 +293,7 @@ def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=44100, normalize=Tr
 
        See Eq.(10)
     """
-    if max_order is None:
-        max_order = _max_order_circular_harmonics(len(x0), max_order)
+    max_order = util.max_order_circular_harmonics(len(x0), max_order)
     if c is None:
         c = defs.c
 
@@ -359,8 +358,7 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=44100, normalize=Tru
 
        See Eq.(11)
    """
-    if max_order is None:
-        max_order = _max_order_circular_harmonics(len(x0), max_order)
+    max_order = util.max_order_circular_harmonics(len(x0), max_order)
     if c is None:
         c = defs.c
 
@@ -416,8 +414,7 @@ def nfchoa_driving_signals(delay, weight, sos, phaseshift, signal, max_order=Non
         Simulation point in time offset (seconds).
 
     """
-    if max_order is None:
-        max_order = _max_order_circular_harmonics(len(phaseshift), max_order)
+    max_order = util.max_order_circular_harmonics(len(phaseshift), max_order)
 
     delay = util.asarray_1d(delay)
     weight = util.asarray_1d(weight)
@@ -436,11 +433,6 @@ def nfchoa_driving_signals(delay, weight, sos, phaseshift, signal, max_order=Non
             d[:, l] += modal_response * 2 * np.cos(m*phaseshift[l])
     t_offset = delay[0]
     return np.real(d) * weight, fs, t_offset
-
-
-def _max_order_circular_harmonics(N, max_order):
-    """Compute order of 2D HOA."""
-    return (N-1) // 2 if max_order is None else max_order
 
 
 def _normalize_digital_filter_gain(s0, sinf, z0, zinf, fs=44100):
