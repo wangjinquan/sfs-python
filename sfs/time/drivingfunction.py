@@ -280,7 +280,7 @@ def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=44100, normalize=Tr
         Overall delay (common to all secondary source)
     weight : float
         Overall weight (common to all secondary sources)
-    sos : dictionary
+    sos : list
         Second-order section filters
     phaseshift : float
         Phase shift
@@ -304,7 +304,7 @@ def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=44100, normalize=Tr
 
     delay = -r0/c
     weight = 2
-    sos = {}
+    sos = []
     for m in range(0, max_order+1):
         _, p, _ = besselap(m, norm='delay')
         # TODO: modify "besselap" for very high orders (>150)
@@ -317,7 +317,7 @@ def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=44100, normalize=Tr
             k = _normalize_digital_filter_gain(s0, sinf, z0, zinf, fs=fs)
         else:
             k = 1
-        sos[m] = zpk2sos(z0, zinf, k, pairing='nearest')
+        sos.append(zpk2sos(z0, zinf, k, pairing='nearest'))
         # TODO: normalize the SOS filters individually?
     phaseshift = phipw + np.pi - phi0
     return delay, weight, sos, phaseshift
@@ -345,7 +345,7 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=44100, normalize=Tru
         Overall delay (common to all secondary source)
     weight : float
         Overall weight (common to all secondary sources)
-    sos : dictionary
+    sos : list
         Second-order section filters
     phaseshift : float
         Phase shift
@@ -369,7 +369,7 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=44100, normalize=Tru
 
     delay = (r-r0)/c
     weight = 1/2/np.pi/r
-    sos = {}
+    sos = []
     for m in range(0, max_order+1):
         _, p, k = besselap(m, norm='delay')
         # TODO: modify "besselap" for very high orders (>150)
@@ -382,7 +382,7 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=44100, normalize=Tru
             k = _normalize_digital_filter_gain(s0, sinf, z0, zinf, fs=fs)
         else:
             k = 1
-        sos[m] = zpk2sos(z0, zinf, k, pairing='nearest')
+        sos.append(zpk2sos(z0, zinf, k, pairing='nearest'))
         # TODO: normalize the SOS filters individually?
     phaseshift = phi0 - phi
     return delay, weight, sos, phaseshift
