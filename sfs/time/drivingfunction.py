@@ -258,8 +258,8 @@ def apply_delays(signal, delays):
     return util.DelayedSignal(out, samplerate, offset_samples / samplerate)
 
 
-def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=44100, normalize=True):
-    """Vritual plane wave by 2.5-dimensional NFC-HOA.
+def nfchoa_25d_plane(x0, r0, npw, fs, max_order=None, c=None):
+    """Virtual plane wave by 2.5-dimensional NFC-HOA.
 
     Parameters
     ----------
@@ -269,7 +269,9 @@ def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=44100, normalize=Tr
         Radius of the circular secondary source distribution
     npw : (3,) array_like
         Unit vector (propagation direction) of plane wave.
-    max_order : int
+    fs : int
+        Sampling frequency in Hz
+    max_order : int, optional
         Ambisonics order
     c : float, optional
         Speed of sound
@@ -277,13 +279,13 @@ def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=44100, normalize=Tr
     Returns
     -------
     delay : float
-        Overall delay (common to all secondary source)
+        Overall delay in seconds (common to all secondary sources)
     weight : float
         Overall weight (common to all secondary sources)
-    sos : list
+    sos : list of array_like
         Second-order section filters
     phaseshift : float
-        Phase shift
+        Phase shift in radians
 
     References
     ----------
@@ -292,6 +294,7 @@ def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=44100, normalize=Tr
        order Ambisonics", WASPAA, p. 61-64
 
        See Eq.(10)
+
     """
     max_order = util.max_order_circular_harmonics(len(x0), max_order)
     if c is None:
@@ -305,26 +308,23 @@ def nfchoa_25d_plane(x0, r0, npw, max_order=None, c=None, fs=44100, normalize=Tr
     delay = -r0/c
     weight = 2
     sos = []
-    for m in range(0, max_order+1):
+    for m in range(max_order+1):
         _, p, _ = besselap(m, norm='delay')
         # TODO: modify "besselap" for very high orders (>150)
         s0 = np.zeros(m)
         sinf = (c/r0)*p
-        z0 = np.exp(s0/fs)
+        z0 = np.ones(m)
         zinf = np.exp(sinf/fs)
         # TODO: select matched-z or bilinear transform
-        if normalize:
-            k = _normalize_digital_filter_gain(s0, sinf, z0, zinf, fs=fs)
-        else:
-            k = 1
+        k = _normalize_digital_filter_gain(s0, sinf, z0, zinf, fs)
         sos.append(zpk2sos(z0, zinf, k, pairing='nearest'))
         # TODO: normalize the SOS filters individually?
     phaseshift = phipw + np.pi - phi0
     return delay, weight, sos, phaseshift
 
 
-def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=44100, normalize=True):
-    """Point source by 2.5-dimensional NFC-HOA.
+def nfchoa_25d_point(x0, r0, xs, fs, max_order=None, c=None):
+    """Virtual Point source by 2.5-dimensional NFC-HOA.
 
     Parameters
     ----------
@@ -334,7 +334,9 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=44100, normalize=Tru
         Radius of the circular secondary source distribution
     xs : (3,) array_like
         Virtual source position.
-    max_order : int
+    fs : int
+        Sampling frequency in Hz
+    max_order : int, optional
         Ambisonics order
     c : float, optional
         Speed of sound
@@ -342,13 +344,13 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=44100, normalize=Tru
     Returns
     -------
     delay : float
-        Overall delay (common to all secondary source)
+        Overall delay in seconds (common to all secondary sources)
     weight : float
         Overall weight (common to all secondary sources)
-    sos : list
+    sos : list of array_like
         Second-order section filters
     phaseshift : float
-        Phase shift
+        Phase shift in radians
 
     References
     ----------
@@ -357,7 +359,8 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=44100, normalize=Tru
        order Ambisonics", WASPAA, p. 61-64
 
        See Eq.(11)
-   """
+
+    """
     max_order = util.max_order_circular_harmonics(len(x0), max_order)
     if c is None:
         c = defs.c
@@ -370,7 +373,7 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=44100, normalize=Tru
     delay = (r-r0)/c
     weight = 1/2/np.pi/r
     sos = []
-    for m in range(0, max_order+1):
+    for m in range(max_order+1):
         _, p, k = besselap(m, norm='delay')
         # TODO: modify "besselap" for very high orders (>150)
         s0 = (c/r)*p
@@ -378,33 +381,32 @@ def nfchoa_25d_point(x0, r0, xs, max_order=None, c=None, fs=44100, normalize=Tru
         z0 = np.exp(s0/fs)
         zinf = np.exp(sinf/fs)
         # TODO: select matched-z or bilinear transform
-        if normalize:
-            k = _normalize_digital_filter_gain(s0, sinf, z0, zinf, fs=fs)
-        else:
-            k = 1
+        k = _normalize_digital_filter_gain(s0, sinf, z0, zinf, fs)
         sos.append(zpk2sos(z0, zinf, k, pairing='nearest'))
         # TODO: normalize the SOS filters individually?
     phaseshift = phi0 - phi
     return delay, weight, sos, phaseshift
 
 
-def nfchoa_driving_signals(delay, weight, sos, phaseshift, signal, max_order=None, fs=44100):
+def nfchoa_driving_signals(delay, weight, sos, phaseshift, signal, max_order=None):
     """Get NFC-HOA driving signals per secondary source.
 
     Parameters
     ----------
     delay : float
-        Overall delay (common to all secondary source)
+        Overall delay in seconds (common to all secondary source)
     weight : float
         Overall weight (common to all secondary sources)
-    sos : dictionary
+    sos : list of array_like
         Second-order section filters
     phaseshift : (C,) array_like
-        Phase shift
-    signal : (N,) array_like
-        Excitation signal (mono) which gets weighted and delayed.
-    fs: int, optional
-        Sampling frequency in Hertz.
+        Phase shift in radians
+    signal : tuple of (N,) array_like, followed by 1 or 2 scalars
+        Excitation signal consisting of (mono) audio data, sampling rate
+        (in Hertz) and optional starting time (in seconds).
+    fs: int
+        Sampling frequency in Hz
+    max_order : int, optional
 
     Returns
     -------
@@ -415,29 +417,38 @@ def nfchoa_driving_signals(delay, weight, sos, phaseshift, signal, max_order=Non
 
     """
     max_order = util.max_order_circular_harmonics(len(phaseshift), max_order)
-
-    delay = util.asarray_1d(delay)
-    weight = util.asarray_1d(weight)
+    data, fs, t_offset = util.as_delayed_signal(signal)
+    N = len(phaseshift)
+    L = len(data)
+    d = np.zeros((L, N))
 #    TODO : check FOS/SOS structure
 
-    N = len(phaseshift)
-    L = len(signal)
-    d = np.zeros((L, N), dtype='complex128')
-
-    modal_response = sosfilt(sos[0], signal)
-    for l in range(N):
-        d[:, l] += modal_response
+    d = np.tile(np.expand_dims(sosfilt(sos[0], data), 1), (1, N))
     for m in range(1, max_order+1):
-        modal_response = sosfilt(sos[np.abs(m)], signal)
-        for l in range(N):
-            d[:, l] += modal_response * 2 * np.cos(m*phaseshift[l])
-    t_offset = delay[0]
+        modal_response = sosfilt(sos[np.abs(m)], data)
+        for n in range(N):
+            d[:, n] += modal_response * 2 * np.cos(m*phaseshift[n])
+    t_offset += delay
     return np.real(d) * weight, fs, t_offset
 
 
-def _normalize_digital_filter_gain(s0, sinf, z0, zinf, fs=44100):
-    """Match the digital filter gain at the Nyquist freuqneycy"""
+def _normalize_digital_filter_gain(s0, sinf, z0, zinf, fs):
+    """Match the digital filter gain at the Nyquist frequency.
 
+    Parameters
+    ----------
+    s0 : (N,) array_like
+        zeros in the Laplace domain
+    sinf : (N,) array_like
+        polse in the Laplace domain
+    z0 : (N,) array_like
+        zeros in the z-domain
+    zinf : (N,) array_like
+        zeros in the z-domain
+    fs : int
+        Sampling frequency in Hz
+
+    """
     # TODO: check the number of poles and zeros
     k = 1
     if np.shape(sinf) is 0:

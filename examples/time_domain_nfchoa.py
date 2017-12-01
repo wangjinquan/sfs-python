@@ -19,7 +19,7 @@ x0, n0, a0 = sfs.array.circular(N, R)  # get secondary source positions
 L = 1024
 dirac = np.zeros(L)
 dirac[0] = 1
-signal = dirac
+signal = dirac, fs, 0
 
 # NFC-HOA order
 max_order = None
@@ -28,12 +28,12 @@ max_order = None
 
 # POINT SOURCE
 #xs = np.r_[1.5, 1.5, 0]  # position
-#delay, weight, sos, phaseshift = sfs.time.drivingfunction.nfchoa_25d_point(x0, R, xs, max_order=max_order, normalize=True)
+#delay, weight, sos, phaseshift = sfs.time.drivingfunction.nfchoa_25d_point(x0, R, xs, fs, max_order=max_order)
 #t = np.linalg.norm(xs) / sfs.defs.c
 
 # PLANE WAVE
 npw = [0, -1, 0]
-delay, weight, sos, phaseshift = sfs.time.drivingfunction.nfchoa_25d_plane(x0, R, npw, max_order=max_order, normalize=True)
+delay, weight, sos, phaseshift = sfs.time.drivingfunction.nfchoa_25d_plane(x0, R, npw, fs, max_order=max_order)
 t = 0
 
 # Driving signals
@@ -53,7 +53,6 @@ plt.clim([-0.1, 0.1])
 
 
 # Synthesized sound field
-a0 = np.ones(len(x0))
 p = sfs.time.soundfield.p_array(x0, (d, fs, t_offset), a0, t, grid)
 
 plt.figure(figsize=(3, 3))
