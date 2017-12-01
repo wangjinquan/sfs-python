@@ -1,8 +1,13 @@
-"""Various utility functions."""
+"""Various utility functions.
+
+.. include:: math-definitions.rst
+
+"""
 
 from __future__ import division
 import collections
 import numpy as np
+from scipy.special import spherical_jn, spherical_yn
 from . import defs
 
 
@@ -125,7 +130,7 @@ def as_delayed_signal(arg, **kwargs):
     ----------
     arg : sequence of 1 array_like followed by 1 or 2 scalars
         The first element is converted to a NumPy array, the second
-        element is used a the sampling rate (in Hertz) and the optional
+        element is used as the sampling rate (in Hertz) and the optional
         third element is used as the starting time of the signal (in
         seconds).  Default starting time is 0.
     **kwargs
@@ -135,8 +140,8 @@ def as_delayed_signal(arg, **kwargs):
     -------
     `DelayedSignal`
         A named tuple consisting of a `numpy.ndarray` containing the
-        audio data, followed by the sampling rate and the starting time
-        of the signal.
+        audio data, followed by the sampling rate (in Hertz) and the
+        starting time (in seconds) of the signal.
 
     Examples
     --------
@@ -410,40 +415,54 @@ This class (a `collections.namedtuple`) is not meant to be instantiated
 by users.
 
 To pass a signal to a function, just use a simple `tuple` or `list`
-containing the audio data and the sampling rate, with an optional
-starting time (in seconds) as a third item.
+containing the audio data and the sampling rate (in Hertz), with an
+optional starting time (in seconds) as a third item.
 If you want to ensure that a given variable contains a valid signal, use
 `sfs.util.as_delayed_signal()`.
 
 """
 
 
-def image_sources_for_box(x, L, max_order, strict_order=True):
-    """Image source method for cuboid room.
+def image_sources_for_box(x, L, N, prune=True):
+    """Image source method for a cuboid room.
+
+    The classical method by [AllenBerkley1979]_.
 
     Parameters
     ----------
     x : (D,) array_like
-        Original source location within :math:`[0,L(i)]^D` cuboid.
+        Original source location within box.
+        Values between 0 and corresponding side length.
     L : (D,) array_like
-        Room dimensions.
-    max_order : int
-        Maximum number of reflections for each wall pair.
-    strict_order : bool, optional
-        If ``strict_order=True`` (the default) only mirror image sources
-        up to max_order are included.
+        side lengths of room.
+    N : int
+        Maximum number of reflections per image source, see below.
+    prune : bool, optional
+        selection of image sources:
+
+        - If True (default):
+          Returns all images reflected up to N times.
+          This is the usual interpretation of N as "maximum order".
+
+        - If False:
+          Returns reflected up to N times between individual wall pairs,
+          a total number of :math:`M := (2N+1)^D`.
+          This larger set is useful e.g. to select image sources based on
+          distance to listener, as suggested by [Borish1984]_.
+
 
     Returns
     -------
     xs : (M, D) array_like
-        original & mirror sources within :math:`[-NL(i),NL(i)]^D` cube
-    order : (M, 2D) array_like
-        order of each individual reflection
+        original & image source locations.
+    wall_count : (M, 2D) array_like
+        number of reflections at individual walls for each source.
+
     """
-    def _images_1d_unit_box(x, max_order):
-        result = np.arange(-max_order, max_order + 1, dtype=x.dtype)
-        result[max_order % 2::2] += x
-        result[1 - (max_order % 2)::2] += 1 - x
+    def _images_1d_unit_box(x, N):
+        result = np.arange(-N, N + 1, dtype=x.dtype)
+        result[N % 2::2] += x
+        result[1 - (N % 2)::2] += 1 - x
         return result
 
     def _count_walls_1d(a):
@@ -454,18 +473,18 @@ def image_sources_for_box(x, L, max_order, strict_order=True):
     L = asarray_1d(L)
     x = asarray_1d(x)/L
     D = len(x)
-    xs = [_images_1d_unit_box(coord, max_order) for coord in x]
+    xs = [_images_1d_unit_box(coord, N) for coord in x]
     xs = np.reshape(np.transpose(np.meshgrid(*xs, indexing='ij')), (-1, D))
 
-    order = np.concatenate([_count_walls_1d(d) for d in xs.T], axis=1)
+    wall_count = np.concatenate([_count_walls_1d(d) for d in xs.T], axis=1)
     xs *= L
 
-    if strict_order is True:
-        max_order_mask = np.sum(order, axis=1) <= max_order
-        xs = xs[max_order_mask, :]
-        order = order[max_order_mask, :]
-        
-    return xs, order
+     if prune is True:
+        N_mask = np.sum(wall_count, axis=1) <= N
+        xs = xs[N_mask, :]
+        wall_count = wall_count[N_mask, :]
+
+    return xs, wall_count
 
 
 def max_order_circular_harmonics(N, max_order):
@@ -497,3 +516,27 @@ def max_order_circular_harmonics(N, max_order):
     if max_order is None:
         max_order = (N-1) // 2
     return max_order
+
+
+def spherical_hn2(n, z):
+    r"""Spherical Hankel function of 2nd kind.
+
+    Defined as http://dlmf.nist.gov/10.47.E6,
+
+    .. math::
+
+        \hankel{2}{n}{z} = \sqrt{\frac{\pi}{2z}}
+        \Hankel{2}{n + \frac{1}{2}}{z},
+
+    where :math:`\Hankel{2}{n}{\cdot}` is the Hankel function of the
+    second kind and n-th order, and :math:`z` its complex argument.
+
+    Parameters
+    ----------
+    n : array_like
+        Order of the spherical Hankel function (n >= 0).
+    z : array_like
+        Argument of the spherical Hankel function.
+
+    """
+    return spherical_jn(n, z) - 1j * spherical_yn(n, z)
