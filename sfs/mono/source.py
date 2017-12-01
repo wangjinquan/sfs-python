@@ -169,11 +169,9 @@ def point_modal(omega, x0, n0, grid, L, N=None, deltan=0, c=None):
     L : (3,) array_like
         Dimensionons of the rectangular room.
     N : (3,) array_like or int, optional
-        Combination of modal orders in the three-spatial dimensions to
-        calculate the sound field for or maximum order for all
-        dimensions.  If not given, the maximum modal order is
-        approximately determined and the sound field is computed up to
-        this maximum order.
+        For all three spatial dimensions per dimension maximum order or
+        ￼list of orders. A scalar applies to all three dimensions. If no
+        order is provided it is approximately determined.
     deltan : float, optional
         Absorption coefficient of the walls.
     c : float, optional
@@ -189,31 +187,30 @@ def point_modal(omega, x0, n0, grid, L, N=None, deltan=0, c=None):
     x0 = util.asarray_1d(x0)
     x, y, z = util.as_xyz_components(grid)
 
+    if np.isscalar(N):
+        N = N * np.ones(3, dtype=int)
+
     if N is None:
-        # determine maximum modal order per dimension
-        Nx = int(np.ceil(L[0]/np.pi * k))
-        Ny = int(np.ceil(L[1]/np.pi * k))
-        Nz = int(np.ceil(L[2]/np.pi * k))
-        mm = range(Nx)
-        nn = range(Ny)
-        ll = range(Nz)
-    elif np.isscalar(N):
-        # compute up to a given order
-        mm = range(N)
-        nn = range(N)
-        ll = range(N)
-    else:
-        # compute field for one order combination only
-        mm = [N[0]]
-        nn = [N[1]]
-        ll = [N[2]]
+            N = [None, None, None]
+
+    orders = [0, 0, 0]
+    for i in range(3):
+        if N[i] is None:
+            # compute max order
+            orders[i] = range(int(np.ceil(L[i]/np.pi * k) + 1))
+        elif np.isscalar(N[i]):
+            # use given max order
+            orders[i] = range(N[i] + 1)
+        else:
+            # use given orders
+            orders[i] = N[i]
 
     kmp0 = [((kx + 1j * deltan)**2, np.cos(kx * x) * np.cos(kx * x0[0]))
-            for kx in [m * np.pi / L[0] for m in mm]]
+            for kx in [m * np.pi / L[0] for m in orders[0]]]
     kmp1 = [((ky + 1j * deltan)**2, np.cos(ky * y) * np.cos(ky * x0[1]))
-            for ky in [n * np.pi / L[1] for n in nn]]
+            for ky in [n * np.pi / L[1] for n in orders[1]]]
     kmp2 = [((kz + 1j * deltan)**2, np.cos(kz * z) * np.cos(kz * x0[2]))
-            for kz in [l * np.pi / L[2] for l in ll]]
+            for kz in [l * np.pi / L[2] for l in orders[2]]]
     ksquared = k**2
     p = 0
     for (km0, p0), (km1, p1), (km2, p2) in itertools.product(kmp0, kmp1, kmp2):
@@ -316,7 +313,7 @@ def point_image_sources(omega, x0, n0, grid, L, max_order, coeffs=None,
     L : (3,) array_like
         Dimensions of the rectangular room.
     max_order : int
-        Maximum number of reflections for each wall pair (order of model)
+        Maximum number of reflections for each image source.
     coeffs : (6,) array_like, optional
         Reflection coeffecients of the walls.
         If not given, the reflection coefficients are set to one.
@@ -449,7 +446,7 @@ def line_dipole(omega, x0, n0, grid, c=None):
 def line_dirichlet_edge(omega, x0, grid, alpha=3/2*np.pi, Nc=None, c=None):
     """Line source scattered at an edge with Dirichlet boundary conditions.
 
-    [Michael M"oser, Technische Akustik, 2012, Springer, eq.(10.18/19)]
+    [Moser2012]_, eq.(10.18/19)
 
     Parameters
     ----------
