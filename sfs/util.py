@@ -479,7 +479,7 @@ def image_sources_for_box(x, L, N, prune=True):
     wall_count = np.concatenate([_count_walls_1d(d) for d in xs.T], axis=1)
     xs *= L
 
-     if prune is True:
+    if prune is True:
         N_mask = np.sum(wall_count, axis=1) <= N
         xs = xs[N_mask, :]
         wall_count = wall_count[N_mask, :]
