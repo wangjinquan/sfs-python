@@ -421,11 +421,11 @@ def nfchoa_driving_signals(delay, weight, sos, phaseshift, signal, max_order=Non
     N = len(phaseshift)
     d = np.tile(np.expand_dims(sosfilt(sos[0], data), 1), (1, N))
     for m in range(1, max_order+1):
-        modal_response = sosfilt(sos[np.abs(m)], data)
+        modal_response = sosfilt(sos[m], data)
         for n in range(N):
             d[:, n] += modal_response * 2 * np.cos(m*phaseshift[n])
     t_offset += delay
-    return np.real(d) * weight, fs, t_offset
+    return d * weight, fs, t_offset
 
 
 def _normalize_digital_filter_gain(s0, sinf, z0, zinf, fs):
