@@ -399,9 +399,9 @@ def nfchoa_driving_signals(delay, weight, sos, phaseshift, signal, max_order=Non
         Overall weight (common to all secondary sources)
     sos : list of array_like
         Second-order section filters
-    phaseshift : (C,) array_like
+    phaseshift : (N,) array_like
         Phase shift in radians
-    signal : tuple of (N,) array_like, followed by 1 or 2 scalars
+    signal : tuple of (L,) array_like, followed by 1 or 2 scalars
         Excitation signal consisting of (mono) audio data, sampling rate
         (in Hertz) and optional starting time (in seconds).
     fs: int
@@ -410,7 +410,7 @@ def nfchoa_driving_signals(delay, weight, sos, phaseshift, signal, max_order=Non
 
     Returns
     -------
-    driving_signals : (N, C) numpy.ndarray
+    driving_signals : (L, N) numpy.ndarray
         Driving signals.
     t_offset : float
         Simulation point in time offset (seconds).
