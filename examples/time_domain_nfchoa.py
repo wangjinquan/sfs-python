@@ -39,19 +39,6 @@ t = 0
 # Driving signals
 d, fs, t_offset = sfs.time.drivingfunction.nfchoa_driving_signals(delay, weight, sos, phaseshift, signal)
 
-plt.figure()
-plt.imshow(sfs.util.db(d), interpolation='None', cmap='Blues')
-plt.axis('tight')
-plt.colorbar()
-plt.clim([-120, 0])
-
-plt.figure()
-plt.imshow(np.real(d), interpolation='None', cmap='coolwarm')
-plt.axis('tight')
-plt.colorbar()
-plt.clim([-0.1, 0.1])
-
-
 # Synthesized sound field
 p = sfs.time.soundfield.p_array(x0, (d, fs, t_offset), a0, t, grid)
 
