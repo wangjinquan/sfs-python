@@ -388,7 +388,7 @@ def nfchoa_25d_point(x0, r0, xs, fs, max_order=None, c=None):
     return delay, weight, sos, phaseshift
 
 
-def nfchoa_driving_signals(delay, weight, sos, phaseshift, signal, max_order=None):
+def nfchoa_driving_signals(delay, weight, sos, phaseshift, signal):
     """Get NFC-HOA driving signals per secondary source.
 
     Parameters
@@ -416,7 +416,7 @@ def nfchoa_driving_signals(delay, weight, sos, phaseshift, signal, max_order=Non
         Simulation point in time offset (seconds).
 
     """
-    max_order = util.max_order_circular_harmonics(len(phaseshift), max_order)
+    max_order = len(sos)-1
     data, fs, t_offset = util.as_delayed_signal(signal)
     N = len(phaseshift)
     d = np.tile(np.expand_dims(sosfilt(sos[0], data), 1), (1, N))
