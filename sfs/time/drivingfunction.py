@@ -419,10 +419,6 @@ def nfchoa_driving_signals(delay, weight, sos, phaseshift, signal, max_order=Non
     max_order = util.max_order_circular_harmonics(len(phaseshift), max_order)
     data, fs, t_offset = util.as_delayed_signal(signal)
     N = len(phaseshift)
-    L = len(data)
-    d = np.zeros((L, N))
-#    TODO : check FOS/SOS structure
-
     d = np.tile(np.expand_dims(sosfilt(sos[0], data), 1), (1, N))
     for m in range(1, max_order+1):
         modal_response = sosfilt(sos[np.abs(m)], data)
