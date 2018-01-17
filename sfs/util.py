@@ -507,11 +507,6 @@ def max_order_circular_harmonics(N, max_order):
         Number of secondary sources.
     max_order : int
         Ambisonics order
-
-    Returns
-    -------
-    max_order : int
-        Ambisonics order
     """
     if max_order is None:
         max_order = (N-1) // 2
