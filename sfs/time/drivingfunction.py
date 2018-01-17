@@ -284,6 +284,7 @@ def nfchoa_25d_plane(x0, r0, npw, fs, max_order=None, c=None):
         Overall weight (common to all secondary sources)
     sos : list of array_like
         Second-order section filters
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.sosfilt.html
     phaseshift : float
         Phase shift in radians
 
@@ -349,6 +350,7 @@ def nfchoa_25d_point(x0, r0, xs, fs, max_order=None, c=None):
         Overall weight (common to all secondary sources)
     sos : list of array_like
         Second-order section filters
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.sosfilt.html
     phaseshift : float
         Phase shift in radians
 
@@ -399,6 +401,7 @@ def nfchoa_driving_signals(delay, weight, sos, phaseshift, signal):
         Overall weight (common to all secondary sources)
     sos : list of array_like
         Second-order section filters
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.sosfilt.html
     phaseshift : (N,) array_like
         Phase shift in radians
     signal : tuple of (L,) array_like, followed by 1 or 2 scalars
