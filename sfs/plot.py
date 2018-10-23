@@ -176,7 +176,7 @@ def loudspeaker_3d(x0, n0, a0=None, w=0.08, h=0.08):
     fig.show()
 
 
-def soundfield(p, grid, xnorm=None, cmap='coolwarm_clip', vmin=-2.0, vmax=2.0,
+def soundfield(p, grid, xnorm=None, cmap='RdBu_r', vmin=-2.0, vmax=2.0,
                xlabel=None, ylabel=None, colorbar=True, colorbar_kwargs={},
                ax=None, **kwargs):
     """Two-dimensional plot of sound field.

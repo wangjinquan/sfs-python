@@ -73,6 +73,30 @@ def wfs_25d_point(omega, x0, n0, xs, xref=[0, 0, 0], c=None, omalias=None):
         r ** (3 / 2) * np.exp(-1j * k * r)
 
 
+def wfs_25d_point_Unified_WIP(omega, x0, n0, xs, xref=[0, 0, 0], c=None,
+                              omalias=None):
+    """Point source by 2.5-dimensional WFS.
+
+	Eq. (2.137) from Schultz,F. (2016): https://doi.org/10.18453/rosdok_id00001765
+	"""
+    x0 = util.asarray_of_rows(x0)
+    n0 = util.asarray_of_rows(n0)
+    xs = util.asarray_1d(xs)
+    xref = util.asarray_1d(xref)
+    k = util.wavenumber(omega, c)
+
+    ds = x0 - xs
+    dr = xref - x0
+    s = np.linalg.norm(ds, axis=1)
+    r = np.linalg.norm(dr, axis=1)
+
+    return wfs_25d_preeq(omega, omalias, c) * \
+           np.sqrt(8 * np.pi) * \
+           np.sqrt((r * s) / (r + s)) * \
+           inner1d(n0, ds) / s * \
+           np.exp(-1j * k * s) / (4 * np.pi * s)
+
+
 wfs_3d_point = _wfs_point
 
 
