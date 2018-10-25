@@ -313,6 +313,33 @@ def nfchoa_25d_point(omega, x0, r0, xs, max_order=None, c=None):
     return d / (2 * np.pi * r0)
 
 
+def nfchoa_25d_point_HF(omega, x0, r0, xs, max_order=None, c=None,
+                        DirichletKernelFlag=True):
+    x0 = util.asarray_of_rows(x0)
+    k = util.wavenumber(omega, c)
+    xs = util.asarray_1d(xs)
+    phi, _, r = util.cart2sph(*xs)
+    phi0 = util.cart2sph(*x0.T)[0]
+    M = _max_order_circular_harmonics(len(x0), max_order)
+    d = 0
+
+    if DirichletKernelFlag==True:
+        for m in range(-M, M + 1):
+            d += np.exp(-1j * k * r) / np.exp(-1j * k * r0) * \
+                 r0 / r * \
+                 np.exp(-1j * m * (phi0 - phi))
+        d = d / (2 * np.pi * r0)
+    else: #this is the analytic solution for m=oo and requires an exact
+        # stationary phase source within phi0, i.e. phi==phi0 in exactly one
+        # index
+        d = np.exp(-1j * k * r) / np.exp(-1j * k * r0) * \
+            r0 / r  / r0 * \
+            len(x0)/2/np.pi * \
+            (phi==phi0) #choose exactly one sec source
+    return d
+
+
+
 def nfchoa_25d_plane(omega, x0, r0, n=[0, 1, 0], max_order=None, c=None):
     r"""Plane wave by 2.5-dimensional NFC-HOA.
 
@@ -338,6 +365,27 @@ def nfchoa_25d_plane(omega, x0, r0, n=[0, 1, 0], max_order=None, c=None):
     for m in range(-M, M + 1):
         d += (-1j)**abs(m) / (k * hn2[abs(m)]) * np.exp(1j * m * (phi0 - phi))
     return 2*1j / r0 * d
+
+
+def nfchoa_25d_plane_HF(omega, x0, r0, n=[0, 1, 0], max_order=None, c=None,
+                        DirichletKernelFlag=True):
+    x0 = util.asarray_of_rows(x0)
+    k = util.wavenumber(omega, c)
+    n = util.normalize_vector(n)
+    phi, _, r = util.cart2sph(*n)
+    phi0 = util.cart2sph(*x0.T)[0]
+    M = _max_order_circular_harmonics(len(x0), max_order)
+    d = 0
+
+    if DirichletKernelFlag == True:
+        for m in range(-M, M + 1):
+            d += np.exp(1j*np.pi*m) * np.exp(1j*m*(phi0 - phi))
+        d *= (2/r0) * (r0/np.exp(-1j*k*r0))
+    else:
+        d = 1/r0 * 4*np.pi*r0 / np.exp(-1j*k*r0) * \
+            len(x0)/2/np.pi * \
+            (phi==(phi0-np.pi)) #choose exactly one sec source
+    return d
 
 
 def sdm_2d_line(omega, x0, n0, xs, c=None):
