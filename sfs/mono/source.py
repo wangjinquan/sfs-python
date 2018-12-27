@@ -711,7 +711,7 @@ def pulsating_sphere_displacement(omega, x0, a, d, grid, c=None):
     Paramters
     ---------
     omega : float
-        Frequency of pulsation.
+        Frequency of pulsating sphere.
     x0 : (3,) array_like
         Position of source.
     a : float
@@ -742,6 +742,33 @@ def pulsating_sphere_displacement(omega, x0, a, d, grid, c=None):
             grid[i] = grid[i][idx_valid]
     return util.XyzComponents([d * a / r**2 * np.exp(-1j * k * (r - a)) * o
                                for o in offset])
+
+
+def pulsating_sphere_velocity(omega, x0, a, d, grid, c=None):
+    """Particle velocity of a pulsating sphere.
+
+    Paramters
+    ---------
+    omega : float
+        Frequency of pulsating sphere
+    x0 : (3,) array_like
+        Position of source.
+    a : float
+        Radius of sphere.
+    d : float
+        Amplitude of displacement.
+    grid : triple of array_like
+        The grid that is used for the sound field calculations.
+        See `sfs.util.xyz_grid()`.
+    c : float, optional
+        Speed of sound.
+
+    Returns
+    -------
+    `XyzComponents`
+        Particle velocity at positions given by *grid*.
+    """
+    return 1j * omega * pulsating_sphere_displacement(omega, x0, a, d, grid, c)
 
 
 def _duplicate_zdirection(p, grid):
