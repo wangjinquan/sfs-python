@@ -771,6 +771,40 @@ def pulsating_sphere_velocity(omega, x0, a, d, grid, c=None):
     return 1j * omega * pulsating_sphere_displacement(omega, x0, a, d, grid, c)
 
 
+def pulsating_sphere(omega, x0, a, d, grid, c=None):
+    """Sound pressure of a pulsating sphere.
+
+    Paramters
+    ---------
+    omega : float
+        Frequency of pulsating sphere
+    x0 : (3,) array_like
+        Position of source.
+    a : float
+        Radius of sphere.
+    d : float
+        Amplitude of displacement.
+    grid : triple of array_like
+        The grid that is used for the sound field calculations.
+        See `sfs.util.xyz_grid()`.
+    c : float, optional
+        Speed of sound.
+
+    Returns
+    -------
+    `XyzComponents`
+        Sound pressure at positions given by *grid*.
+    """
+    k = util.wavenumber(omega, c)
+    x0 = util.asarray_1d(x0)
+    grid = util.as_xyz_components(grid)
+
+    r = np.linalg.norm(grid - x0)
+    theta = np.arctan(1, k * r)
+    Z = defs.rho0 * defs.c * np.cos(theta) * np.exp(1j * theta)
+    return Z * 1j * omega * d * a / r * np.exp(-1j * k * (r - a))
+
+
 def _duplicate_zdirection(p, grid):
     """If necessary, duplicate field in z-direction."""
     gridshape = np.broadcast(*grid).shape
