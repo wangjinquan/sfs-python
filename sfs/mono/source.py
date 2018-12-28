@@ -733,13 +733,7 @@ def pulsating_sphere_displacement(omega, x0, a, d, grid, c=None):
     x0 = util.asarray_1d(x0)
     offset = grid - x0
     r = np.linalg.norm(offset)
-    idx_valid = r > a
-    r = r[idx_valid]
-    for i in range(3):
-        if not np.isscalar(offset[i]):
-            offset[i] = offset[i][idx_valid]
-        if not np.isscalar(grid[i]):
-            grid[i] = grid[i][idx_valid]
+    r[r <= a] = np.nan
     return util.XyzComponents([d * a / r**2 * np.exp(-1j * k * (r - a)) * o
                                for o in offset])
 
@@ -800,6 +794,7 @@ def pulsating_sphere(omega, x0, a, d, grid, c=None):
     grid = util.as_xyz_components(grid)
 
     r = np.linalg.norm(grid - x0)
+    r[r <= a] = np.nan
     theta = np.arctan(1, k * r)
     Z = defs.rho0 * defs.c * np.cos(theta) * np.exp(1j * theta)
     return Z * 1j * omega * d * a / r * np.exp(-1j * k * (r - a))
