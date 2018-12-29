@@ -705,18 +705,18 @@ def plane_averaged_intensity(omega, x0, n0, grid, c=None):
     return util.XyzComponents([i * n for n in n0])
 
 
-def pulsating_sphere_displacement(omega, x0, a, d, grid, c=None):
-    """Particle displacement of a pulsating sphere.
+def pulsating_sphere(omega, x0, radius, amplitude, grid, c=None):
+    """Sound pressure of a pulsating sphere.
 
-    Paramters
+    Parameters
     ---------
     omega : float
-        Frequency of pulsating sphere.
+        Frequency of pulsating sphere
     x0 : (3,) array_like
-        Position of source.
-    a : float
+        Center of sphere.
+    radius : float
         Radius of sphere.
-    d : float
+    amplitude : float
         Amplitude of displacement.
     grid : triple of array_like
         The grid that is used for the sound field calculations.
@@ -726,30 +726,35 @@ def pulsating_sphere_displacement(omega, x0, a, d, grid, c=None):
 
     Returns
     -------
-    `XyzComponents`
-        Particle displacement at positions given by *grid*.
+    numpy.ndarray
+        Sound pressure at positions given by *grid*.
     """
+    if c is None:
+        c = defs.c
     k = util.wavenumber(omega, c)
     x0 = util.asarray_1d(x0)
-    offset = grid - x0
-    r = np.linalg.norm(offset)
-    r[r <= a] = np.nan
-    return util.XyzComponents([d * a / r**2 * np.exp(-1j * k * (r - a)) * o
-                               for o in offset])
+    grid = util.as_xyz_components(grid)
+
+    r = np.linalg.norm(grid - x0)
+    r[r <= radius] = np.nan
+    theta = np.arctan(1, k * r)
+    impedence = defs.rho0 * c * np.cos(theta) * np.exp(1j * theta)
+    return impedence * 1j * omega * amplitude * radius / r \
+        * np.exp(-1j * k * (r - radius))
 
 
-def pulsating_sphere_velocity(omega, x0, a, d, grid, c=None):
+def pulsating_sphere_velocity(omega, x0, radius, amplitude, grid, c=None):
     """Particle velocity of a pulsating sphere.
 
-    Paramters
+    Parameters
     ---------
     omega : float
         Frequency of pulsating sphere
     x0 : (3,) array_like
-        Position of source.
-    a : float
+        Center of sphere.
+    radius : float
         Radius of sphere.
-    d : float
+    amplitude : float
         Amplitude of displacement.
     grid : triple of array_like
         The grid that is used for the sound field calculations.
@@ -762,42 +767,16 @@ def pulsating_sphere_velocity(omega, x0, a, d, grid, c=None):
     `XyzComponents`
         Particle velocity at positions given by *grid*.
     """
-    return 1j * omega * pulsating_sphere_displacement(omega, x0, a, d, grid, c)
-
-
-def pulsating_sphere(omega, x0, a, d, grid, c=None):
-    """Sound pressure of a pulsating sphere.
-
-    Paramters
-    ---------
-    omega : float
-        Frequency of pulsating sphere
-    x0 : (3,) array_like
-        Position of source.
-    a : float
-        Radius of sphere.
-    d : float
-        Amplitude of displacement.
-    grid : triple of array_like
-        The grid that is used for the sound field calculations.
-        See `sfs.util.xyz_grid()`.
-    c : float, optional
-        Speed of sound.
-
-    Returns
-    -------
-    `XyzComponents`
-        Sound pressure at positions given by *grid*.
-    """
+    if c is None:
+        c = defs.c
     k = util.wavenumber(omega, c)
     x0 = util.asarray_1d(x0)
-    grid = util.as_xyz_components(grid)
-
-    r = np.linalg.norm(grid - x0)
-    r[r <= a] = np.nan
-    theta = np.arctan(1, k * r)
-    Z = defs.rho0 * defs.c * np.cos(theta) * np.exp(1j * theta)
-    return Z * 1j * omega * d * a / r * np.exp(-1j * k * (r - a))
+    offset = grid - x0
+    r = np.linalg.norm(offset)
+    r[r <= radius] = np.nan
+    return util.XyzComponents([1j * omega * amplitude * radius / r**2
+                               * np.exp(-1j * k * (r - radius)) * o
+                               for o in offset])
 
 
 def _duplicate_zdirection(p, grid):
