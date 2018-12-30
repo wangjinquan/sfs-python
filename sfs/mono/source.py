@@ -6,6 +6,7 @@
     import sfs
     import numpy as np
     import matplotlib.pyplot as plt
+    from matplotlib import patches
     plt.rcParams['figure.figsize'] = 8, 4.5  # inch
 
     x0 = 1.5, 1, 0
@@ -20,6 +21,12 @@
 
     # Grid for vector fields:
     vgrid = sfs.util.xyz_grid([-2, 3], [-1, 2], 0, spacing=0.1)
+
+    # Parameters for pulsating sphere:
+    center = [0, 0, 0]
+    radius = 0.25
+    amplitude = 1 / (radius * omega * sfs.defs.rho0 * sfs.defs.c)
+    scale = 5e4
 
 """
 
@@ -729,6 +736,21 @@ def pulsating_sphere(omega, center, radius, amplitude, grid, c=None):
     numpy.ndarray
         Sound pressure at positions given by *grid*.
 
+    Examples
+    --------
+
+    .. plot::
+        :context: close-figs
+
+        p = sfs.mono.source.pulsating_sphere(omega, center, radius, amplitude,
+                                             grid)
+        v = sfs.mono.source.pulsating_sphere_velocity(omega, center, radius,
+                                                      amplitude, vgrid)
+        sfs.plot.soundfield(p, grid)
+        sfs.plot.vectors(v, vgrid)
+        plt.gca().add_patch(patches.Circle(center[:2], radius + amplitude))
+        plt.title("Sound Pressure and Particle Velocity of a Pulsating Sphere")
+
     """
     if c is None:
         c = defs.c
@@ -768,6 +790,20 @@ def pulsating_sphere_velocity(omega, center, radius, amplitude, grid, c=None):
     -------
     `XyzComponents`
         Particle velocity at positions given by *grid*.
+
+    Examples
+    --------
+
+    .. plot::
+        :context: close-figs
+
+        v = sfs.mono.source.pulsating_sphere_velocity(omega, center, radius,
+                                                      scale * amplitude, vgrid)
+        d = sfs.util.displacement(v, omega)
+        sfs.plot.particles(vgrid + d, marker='.', color='k')
+        plt.gca().add_patch(patches.Circle(center[:2],
+            radius + scale * amplitude))
+        plt.title("Particle Displacement of a Pulsating Sphere")
 
     """
     if c is None:
