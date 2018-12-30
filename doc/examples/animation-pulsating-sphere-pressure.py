@@ -1,13 +1,12 @@
-"""Sound pressure of a pulsating sphere.
-"""
+"""Sound pressure of a pulsating sphere."""
 import sfs
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import animation, patches
 
 # Pulsating sphere
-x0 = [0, 0, 0]  # position
-radius = 0.25  # radius
+center = [0, 0, 0]
+radius = 0.25
 amplitude = 0.05  # amplitude of the surface displacement
 f = 750  # frequency
 omega = 2 * np.pi * f  # angular frequency
@@ -25,14 +24,14 @@ grid = sfs.util.xyz_grid([xmin, xmax], [ymin, ymax], 0, spacing=0.005)
 
 # Sound pressure
 pressure = sfs.mono.source.pulsating_sphere(omega,
-                                            x0,
+                                            center,
                                             radius,
                                             amplitude,
                                             grid)
 
 # Animation
-impedence_pw = sfs.defs.rho0 * sfs.defs.c
-clim = impedence_pw * omega * amplitude * np.array([-1, 1])
+impedance_pw = sfs.defs.rho0 * sfs.defs.c
+clim = impedance_pw * omega * amplitude * np.array([-1, 1])
 
 fig = plt.figure(figsize=(8, 8))
 ax = plt.axes(xlim=(-xmax, xmax), ylim=(-ymax, ymax))
@@ -41,7 +40,7 @@ im = sfs.plot.soundfield(np.real(pressure),
                          vmin=clim[0],
                          vmax=clim[1],
                          colorbar=True)
-patch = ax.add_patch(patches.Circle(x0[:2],
+patch = ax.add_patch(patches.Circle(center[:2],
                                     radius=radius,
                                     facecolor='RoyalBlue',
                                     linestyle='None',
@@ -59,6 +58,7 @@ ax.axis('off')
 
 
 def animate(i, im, patch, text):
+    """Update frame."""
     phase_shift = np.exp(1j * omega * t[i])
     im.set_array(np.real(pressure * phase_shift))
     patch.set_radius(radius + amplitude * np.real(phase_shift))

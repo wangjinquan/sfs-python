@@ -1,13 +1,12 @@
-"""Particle velocity of a pulsating sphere.
-"""
+"""Particle velocity of a pulsating sphere."""
 import sfs
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import animation, patches
 
 # Pulsating sphere
-x0 = [0, 0, 0]  # position
-radius = 0.25  # radius
+center = [0, 0, 0]
+radius = 0.25
 amplitude = 0.05  # amplitude of the surface displacement
 f = 750  # frequency
 omega = 2 * np.pi * f  # angular frequency
@@ -25,16 +24,16 @@ grid = sfs.util.xyz_grid([xmin, xmax], [ymin, ymax], 0, spacing=0.04)
 
 # Particle velocity
 velocity = sfs.mono.source.pulsating_sphere_velocity(omega,
-                                                     x0,
+                                                     center,
                                                      radius,
                                                      amplitude,
                                                      grid)
 
 # Animation
-clim = -omega * amplitude, omega * amplitude
+clim = omega * amplitude * np.array([-1, 1])
 fig = plt.figure(figsize=(8, 8))
 ax = plt.axes(xlim=(-xmax, xmax), ylim=(-ymax, ymax))
-patch = ax.add_patch(patches.Circle(x0[:2],
+patch = ax.add_patch(patches.Circle(center[:2],
                                     radius=radius,
                                     facecolor='RoyalBlue',
                                     linestyle='None',
@@ -52,6 +51,7 @@ ax.axis('off')
 
 
 def animate(i, quiv, patch, text):
+    """Update frame."""
     phase_shift = np.exp(1j * omega * t[i])
     quiv.set_UVC(*(velocity * phase_shift).apply(np.real)[:2])
     patch.set_radius(radius + amplitude * np.real(phase_shift))
