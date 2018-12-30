@@ -705,14 +705,14 @@ def plane_averaged_intensity(omega, x0, n0, grid, c=None):
     return util.XyzComponents([i * n for n in n0])
 
 
-def pulsating_sphere(omega, x0, radius, amplitude, grid, c=None):
+def pulsating_sphere(omega, center, radius, amplitude, grid, c=None):
     """Sound pressure of a pulsating sphere.
 
     Parameters
     ---------
     omega : float
         Frequency of pulsating sphere
-    x0 : (3,) array_like
+    center : (3,) array_like
         Center of sphere.
     radius : float
         Radius of sphere.
@@ -728,29 +728,31 @@ def pulsating_sphere(omega, x0, radius, amplitude, grid, c=None):
     -------
     numpy.ndarray
         Sound pressure at positions given by *grid*.
+
     """
     if c is None:
         c = defs.c
     k = util.wavenumber(omega, c)
-    x0 = util.asarray_1d(x0)
+    center = util.asarray_1d(center)
     grid = util.as_xyz_components(grid)
 
-    r = np.linalg.norm(grid - x0)
-    r[r <= radius] = np.nan
-    theta = np.arctan(1, k * r)
-    impedence = defs.rho0 * c * np.cos(theta) * np.exp(1j * theta)
-    return impedence * 1j * omega * amplitude * radius / r \
-        * np.exp(-1j * k * (r - radius))
+    distance = np.linalg.norm(grid - center)
+    theta = np.arctan(1, k * distance)
+    impedance = defs.rho0 * c * np.cos(theta) * np.exp(1j * theta)
+    radial_velocity = 1j * omega * amplitude * radius / distance \
+        * np.exp(-1j * k * (distance - radius))
+    radial_velocity[distance <= radius] = np.nan
+    return impedance * radial_velocity
 
 
-def pulsating_sphere_velocity(omega, x0, radius, amplitude, grid, c=None):
+def pulsating_sphere_velocity(omega, center, radius, amplitude, grid, c=None):
     """Particle velocity of a pulsating sphere.
 
     Parameters
     ---------
     omega : float
         Frequency of pulsating sphere
-    x0 : (3,) array_like
+    center : (3,) array_like
         Center of sphere.
     radius : float
         Radius of sphere.
@@ -766,17 +768,20 @@ def pulsating_sphere_velocity(omega, x0, radius, amplitude, grid, c=None):
     -------
     `XyzComponents`
         Particle velocity at positions given by *grid*.
+
     """
     if c is None:
         c = defs.c
     k = util.wavenumber(omega, c)
-    x0 = util.asarray_1d(x0)
-    offset = grid - x0
-    r = np.linalg.norm(offset)
-    r[r <= radius] = np.nan
-    return util.XyzComponents([1j * omega * amplitude * radius / r**2
-                               * np.exp(-1j * k * (r - radius)) * o
-                               for o in offset])
+    grid = util.as_xyz_components(grid)
+
+    center = util.asarray_1d(center)
+    offset = grid - center
+    distance = np.linalg.norm(offset)
+    radial_velocity = 1j * omega * amplitude * radius / distance \
+        * np.exp(-1j * k * (distance - radius))
+    radial_velocity[distance <= radius] = np.nan
+    return util.XyzComponents([radial_velocity * o / distance for o in offset])
 
 
 def _duplicate_zdirection(p, grid):
