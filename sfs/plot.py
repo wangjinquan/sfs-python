@@ -338,12 +338,13 @@ def particles(x, trim=None, ax=None, xlabel='x (m)', ylabel='y (m)',
     if ax is None:
         ax = plt.gca()
 
-    ax.scatter(XX, YY, edgecolor=edgecolor, **kwargs)
+    scat = ax.scatter(XX, YY, edgecolor=edgecolor, **kwargs)
 
     if xlabel:
         ax.set_xlabel(xlabel)
     if ylabel:
         ax.set_ylabel(ylabel)
+    return scat
 
 
 def vectors(v, grid, cmap='blacktransparent', headlength=3, headaxislength=2.5,

@@ -18,7 +18,7 @@ L = int(np.round(fs / f))  # number of frames corresponding to one period
 t = np.arange(L) / fs  # time
 
 # Uniform grid
-xmin, xmax = -1, 1
+xmin, xmax = -2, 1
 ymin, ymax = -1, 1
 grid = sfs.util.xyz_grid([xmin, xmax], [ymin, ymax], 0, spacing=0.02)
 
@@ -38,13 +38,10 @@ patch = ax.add_patch(patches.Circle(center[:2],
                                     facecolor='RoyalBlue',
                                     linestyle='None',
                                     alpha=0.4))
-line, = ax.plot([], [],
-                marker='o',
-                markersize=1.5,
-                markerfacecolor='gray',
-                markeredgecolor='None',
-                linestyle='None',
-                alpha=0.75)
+scat = sfs.plot.particles(grid + displacement,
+                          s=15,
+                          c='gray',
+                          marker='.')
 text = ax.text(0.9 * xmax, 0.9 * ymin, '<t>',
                fontsize=16,
                horizontalalignment='right',
@@ -56,20 +53,21 @@ ax.set_ylabel('$y$ / m')
 ax.axis('off')
 
 
-def animate(i, line, patch, text):
+def animate(i, scat, patch, text):
     """Update frame."""
     phase_shift = np.exp(1j * omega * t[i])
     X = grid + (displacement * phase_shift).apply(np.real)
-    line.set_data(X[0], X[1])
+    X = np.column_stack([X[0].flatten(), X[1].flatten()])
+    scat.set_offsets(X)
     patch.set_radius(radius + amplitude * np.real(phase_shift))
     text.set_text('{:0.2f} ms'.format(t[i] * 1000))
-    return line, patch, text
+    return scat, patch, text
 
 
 ani = animation.FuncAnimation(fig,
                               animate,
                               frames=L,
-                              fargs=(line, patch, text))
+                              fargs=(scat, patch, text))
 ani.save('pulsating_sphere_displacement.gif',
          fps=10,
          dpi=80,
