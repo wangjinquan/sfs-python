@@ -18,7 +18,7 @@ L = int(np.round(fs / f))  # number of frames corresponding to one period
 t = np.arange(L) / fs  # time
 
 # Uniform grid
-xmin, xmax = -2, 1
+xmin, xmax = -1, 1
 ymin, ymax = -1, 1
 grid = sfs.util.xyz_grid([xmin, xmax], [ymin, ymax], 0, spacing=0.02)
 
