@@ -13,7 +13,7 @@ omega = 2 * np.pi * f  # angular frequency
 ka = sfs.util.wavenumber(omega) * radius
 
 # Temporal sampling for animation
-fs = f * 10  # sampling frequency
+fs = f * 20  # sampling frequency
 L = int(np.round(fs / f))  # number of frames corresponding to one period
 t = np.arange(L) / fs  # time
 
@@ -29,6 +29,11 @@ velocity = sfs.mono.source.pulsating_sphere_velocity(omega,
                                                      amplitude,
                                                      grid)
 displacement = sfs.util.displacement(velocity, omega)
+distance = np.linalg.norm(grid)
+radial_velocity = np.sum([velocity[i] * grid[i] / distance
+                          for i in range(3)], axis=0)
+radial_velocity[np.isnan(radial_velocity)] = 0
+radial_velocity /= np.max(np.abs(radial_velocity))
 
 # Animation
 fig = plt.figure(figsize=(8, 8))
@@ -40,8 +45,10 @@ patch = ax.add_patch(patches.Circle(center[:2],
                                     alpha=0.4))
 scat = sfs.plot.particles(grid + displacement,
                           s=15,
-                          c='gray',
-                          marker='.')
+                          c=np.real(radial_velocity),
+                          marker='.',
+                          cmap='coolwarm',
+                          vmin=-1, vmax=1)
 text = ax.text(0.9 * xmax, 0.9 * ymin, '<t>',
                fontsize=16,
                horizontalalignment='right',
@@ -59,6 +66,7 @@ def animate(i, scat, patch, text):
     X = grid + (displacement * phase_shift).apply(np.real)
     X = np.column_stack([X[0].flatten(), X[1].flatten()])
     scat.set_offsets(X)
+    scat.set_array(np.real(radial_velocity * phase_shift).flatten())
     patch.set_radius(radius + amplitude * np.real(phase_shift))
     text.set_text('{:0.2f} ms'.format(t[i] * 1000))
     return scat, patch, text
