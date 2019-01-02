@@ -729,6 +729,18 @@ def pulsating_sphere(omega, center, radius, amplitude, grid, c=None):
     numpy.ndarray
         Sound pressure at positions given by *grid*.
 
+    Examples
+    --------
+
+    .. plot::
+        :context: close-figs
+
+        radius = 0.25
+        amplitude = 1 / (radius * omega * sfs.defs.rho0 * sfs.defs.c)
+        p = sfs.mono.source.pulsating_sphere(omega, x0, radius, amplitude, grid)
+        sfs.plot.soundfield(p, grid)
+        plt.title("Sound Pressure of a Pulsating Sphere")
+
     """
     if c is None:
         c = defs.c
